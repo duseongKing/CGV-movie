@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.spring_movie01.dao.MovieDao" >
+
+	<select id="selectMovieList"  resultType="com.spring_movie01.dto.MovieDto" >
+		SELECT MVCODE, MVNAME, MVPD, MVACTOR, MVGENRE, MVAGE, MVTIME, TO_CHAR(MVOPEN,'YYYY-MM-DD') AS MVOPEN, MVPOSTER 
+		FROM MOVIES
+		WHERE MVSTATE = 1 
+		ORDER BY MVCODE
+	</select>
+	
+	<select id="selectMvCheck" resultType="int">
+		SELECT COUNT(*) 
+		FROM MOVIES 
+		WHERE MVNAME = #{mvname} AND TO_CHAR(MVOPEN,'YYYY.MM.DD') = #{mvopen}
+	</select>
+	
+	<select id="selectMovieInfo" resultType="com.spring_movie01.dto.MovieDto">
+		SELECT MVCODE, MVNAME, MVPD, MVACTOR, MVGENRE, MVAGE, MVTIME, TO_CHAR(MVOPEN,'YYYY-MM-DD') AS MVOPEN, MVPOSTER 
+		FROM MOVIES 
+		WHERE MVCODE = #{mvcode}
+	</select>
+	
+	<select id="selectReserveMvList" resultType="com.spring_movie01.dto.MovieDto" >
+		SELECT *
+		FROM MOVIES
+		WHERE MVCODE IN ( SELECT SCMVCODE FROM SCHEDULES ) AND MVSTATE = 1
+	</select>
+	
+	<select id="selectReserveThList" resultType="com.spring_movie01.dto.TheaterDto">
+		SELECT * 
+		FROM THEATERS
+		WHERE THCODE IN (SELECT SCTHCODE FROM SCHEDULES WHERE SCMVCODE = #{mvcode} )
+		      AND THSTATE = 1
+	</select>
+		
+		
+	<select id="selectReserveScDateList" resultType="com.spring_movie01.dto.ScheduleDto">
+		SELECT TO_CHAR(SCDATE,'YYYY-MM-DD') AS SCDATE
+		FROM SCHEDULES
+		WHERE SCMVCODE = #{mvcode} AND SCTHCODE = #{thcode}
+		GROUP BY TO_CHAR(SCDATE,'YYYY-MM-DD')
+		ORDER BY SCDATE
+	</select>
+	
+	<select id="selectReserveScRoomTimeList" resultType="com.spring_movie01.dto.ScheduleDto">
+		SELECT SCROOM, TO_CHAR(SCDATE,'HH24:MI') AS SCDATE
+		FROM SCHEDULES
+		WHERE SCMVCODE = #{mvcode} AND SCTHCODE = #{thcode} AND TO_CHAR(SCDATE,'YYYY-MM-DD') = #{scdate}
+		ORDER BY SCROOM , SCDATE 
+	</select>
+	
+	
+	
+	<select id="getMaxRecode" resultType="String">
+		SELECT MAX(RECODE) FROM RESERVATION
+	</select>
+	
+	<insert id="insertReservationInfo"  >
+		INSERT INTO RESERVATION(RECODE, REMID, RESCTHCODE, RESCROOM, RESCDATE, REAMOUNT) 
+		VALUES( #{recode}, #{remid}, #{rescthcode}, #{rescroom}, TO_DATE(#{rescdate},'YYYY-MM-DD HH24:MI'), #{reamount}  )
+	</insert>
+	
+	<select id="selectReservationList" resultType="com.spring_movie01.dto.ReserveInfoDto">
+		SELECT MV.MVCODE, MV.MVNAME, MV.MVPOSTER, 
+		       TH.THNAME, SC.SCROOM, TO_CHAR(SC.SCDATE,'YYYY.MM.DD HH24:MI') AS SCDATE,
+		       RE.RECODE, RE.REAMOUNT 
+		FROM RESERVATION RE, SCHEDULES SC, MOVIES MV, THEATERS TH
+		WHERE RE.RESCTHCODE = SC.SCTHCODE AND RE.RESCROOM = SC.SCROOM AND RE.RESCDATE = SC.SCDATE
+   			AND SC.SCMVCODE = MV.MVCODE
+   			AND SC.SCTHCODE = TH.THCODE
+   			AND RE.REMID = #{remid}
+   		ORDER BY SCDATE DESC
+	</select>
+	
+	<select id="selectResevationInfo" resultType="com.spring_movie01.dto.ReserveInfoDto">
+		SELECT MV.MVCODE, MV.MVNAME, MV.MVPOSTER, 
+		       TH.THNAME, SC.SCROOM, TO_CHAR(SC.SCDATE,'YYYY.MM.DD HH24:MI') AS SCDATE,
+		       RE.RECODE, RE.REAMOUNT 
+		FROM RESERVATION RE, SCHEDULES SC, MOVIES MV, THEATERS TH
+		WHERE RE.RESCTHCODE = SC.SCTHCODE AND RE.RESCROOM = SC.SCROOM AND RE.RESCDATE = SC.SCDATE
+   			AND SC.SCMVCODE = MV.MVCODE
+   			AND SC.SCTHCODE = TH.THCODE
+   			AND RE.RECODE = #{recode}
+	</select>
+	
+	<delete id="deleteReservation">
+		DELETE FROM RESERVATION WHERE RECODE = #{recode}
+	</delete>
+	
+	<insert id="insertReview">
+		INSERT INTO REVIEW(RVRECODE, RVMID, RVMVCODE, RVCOMMENT, RVDATE, RVRECOMMEND)
+		VALUES(#{rvrecode}, #{rvmid}, #{rvmvcode}, #{rvcomment}, SYSDATE, #{rvrecommend})
+	</insert>
+	
+	<select id="selectReviewWriteCheck" resultType="String">
+		SELECT RVRECODE 
+		FROM REVIEW 
+		WHERE RVRECODE = #{recode}
+	</select>
+	
+	<select id="selectReviewInfo"  resultType="com.spring_movie01.dto.ReviewDto" >
+		SELECT RVRECODE, RVMID, RVMVCODE, RVCOMMENT, TO_CHAR(RVDATE,'YYYY-MM-DD HH24:MI') AS RVDATE, RVRECOMMEND
+		FROM REVIEW
+		WHERE RVRECODE = #{rvrecode}
+	</select>
+	
+	<select id="selectReviewList" resultType="com.spring_movie01.dto.ReviewDto">
+		SELECT RVRECODE, RVMID, RVMVCODE, RVCOMMENT, 
+				TO_CHAR(RVDATE,'YYYY-MM-DD HH24:MI') AS RVDATE,
+				RVRECOMMEND, M.MPROFILE
+		FROM REVIEW RV, MEMBERS M
+		WHERE RV.RVMID = M.MID 
+    	AND RVMVCODE = #{mvcode}
+	</select>
+	
+	
+	<select id="selectCountReservation" resultType="int" >
+		SELECT COUNT(*)
+		FROM RESERVATION
+	</select>
+	
+		
+	<select id="selectMvCountReservation" resultType="int" >
+		SELECT COUNT(*) 
+		FROM RESERVATION RE,  SCHEDULES SC
+		WHERE RE.RESCTHCODE = SC.SCTHCODE 
+		      AND RE.RESCROOM = SC.SCROOM 
+		      AND RE.RESCDATE = SC.SCDATE
+     		  AND SCMVCODE = #{mvcode}
+	</select>
+	
+	
+	<select id="selectSearchMvList" resultType="com.spring_movie01.dto.MovieDto">
+		SELECT MVCODE, MVNAME, MVPD, MVACTOR, MVGENRE, MVAGE, 
+			   MVTIME, TO_CHAR(MVOPEN,'YYYY-MM-DD') AS MVOPEN, MVPOSTER
+		FROM MOVIES
+		WHERE MVNAME LIKE '%'||#{searchText}||'%'
+		<if test="checkWhere == 'schedule'">
+			AND MVCODE IN ( SELECT SCMVCODE FROM SCHEDULES WHERE SCDATE > SYSDATE )
+		</if>
+		
+	</select>
+
+</mapper>  
+  
+  
+  
+  
+  
